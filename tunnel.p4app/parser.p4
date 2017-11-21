@@ -3,8 +3,13 @@ parser ParserImpl(packet_in packet, out headers hdr, inout metadata meta, inout 
         packet.extract(hdr.ethernet);
         transition select(hdr.ethernet.etherType) {
             16w0x800: parse_ipv4;
+	    16w0x6114: parse_tunnel;
             default: accept;
         }
+    }
+    state parse_tunnel {
+	packet.extract(hdr.tunnel);
+	transition accept;
     }
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
@@ -19,6 +24,7 @@ control DeparserImpl(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
+	packet.emit(hdr.tunnel);
     }
 }
 

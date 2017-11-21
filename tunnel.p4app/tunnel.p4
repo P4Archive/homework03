@@ -45,6 +45,9 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
           ipv4_lpm.apply();
           forward.apply();
         }
+	if (hdr.tunnel.isValid()){ // cases are disjoint per the parser
+	  // do something
+	}
     }
 }
 
