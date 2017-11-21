@@ -1,0 +1,9 @@
+{ "program": "monitor.p4",
+  "language": "p4-16",
+  "targets": {
+	  "mininet": {
+          "num-hosts" : 3,
+          "switch-config" : "s1.config"
+      }
+  }
+}
