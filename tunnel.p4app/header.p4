@@ -33,6 +33,12 @@ header ipv4_t {
     bit<32> dstAddr;
 }
 
+header tunnel_t {
+    bit<8> ones;
+    bit<8> tunnelID:
+    bit<8> zeros;
+}
+
 struct metadata {
     ingress_metadata_t   ingress_metadata;
     intrinsic_metadata_t intrinsic_metadata;
@@ -41,6 +47,7 @@ struct metadata {
 struct headers {
     ethernet_t ethernet;
     ipv4_t     ipv4;
+    tunnel_t   tunnel;
 }
 
 #endif // __HEADER_H__
