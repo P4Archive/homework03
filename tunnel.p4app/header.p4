@@ -35,7 +35,7 @@ header ipv4_t {
 
 header tunnel_t {
     bit<8> ones;
-    bit<8> tunnelID:
+    bit<8> tunnelID;
     bit<8> zeros;
 }
 

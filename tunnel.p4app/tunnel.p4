@@ -16,6 +16,11 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     action set_dmac(bit<48> dmac) {
         hdr.ethernet.dstAddr = dmac;
     }
+
+    action set_port(bit<9> port) {
+	standard_metadata.egress_spec = port;
+    }
+
     table ipv4_lpm {
         actions = {
             _drop;
@@ -40,13 +45,25 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
         size = 512;
         default_action = NoAction();
     }
+    
+    table tunnel_forward {
+	actions = {
+	    set_port;
+	    _drop;
+	    NoAction;
+	}
+	key = {
+	    hdr.tunnel.tunnelID: exact;
+	}
+	default_action = NoAction();
+    }
+	
     apply {
         if (hdr.ipv4.isValid()) {
           ipv4_lpm.apply();
           forward.apply();
-        }
-	if (hdr.tunnel.isValid()){ // cases are disjoint per the parser
-	  // do something
+        } else if (hdr.tunnel.isValid()){
+	  tunnel_forward.apply();
 	}
     }
 }
@@ -71,7 +88,7 @@ control egress(inout headers hdr, inout metadata meta, inout standard_metadata_t
         default_action = NoAction();
     }
     apply {
-        if (hdr.ipv4.isValid()) {
+        if (hdr.ipv4.isValid() || hdr.tunnel.isValid()) {
           send_frame.apply();
         }
     }
