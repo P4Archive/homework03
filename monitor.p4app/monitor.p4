@@ -3,11 +3,15 @@
 
 #include "header.p4"
 #include "parser.p4"
-    
+
 control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
+
+    counter(32w1024,CounterType.bytes) ctr;
+    
     action _drop() {
         mark_to_drop();
     }
+    
     action set_nhop(bit<32> nhop_ipv4, bit<9> port) {
         meta.ingress_metadata.nhop_ipv4 = nhop_ipv4;
         standard_metadata.egress_spec = port;
@@ -15,6 +19,19 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     }
     action set_dmac(bit<48> dmac) {
         hdr.ethernet.dstAddr = dmac;
+    }
+    action count_bytes(bit<32> idx){
+	ctr.count(idx);
+    }
+    table ipv4_count {
+	actions = {
+	    count_bytes;
+	}
+	key = {
+	    hdr.ipv4.srcAddr: exact;
+	}
+	size = 256;
+	default_action = count_bytes(0);
     }
     table ipv4_lpm {
         actions = {
@@ -30,7 +47,7 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     }
     table forward {
         actions = {
-            set_dmac;ls
+	    set_dmac;
             _drop;
             NoAction;
         }
@@ -42,6 +59,7 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     }
     apply {
         if (hdr.ipv4.isValid()) {
+	  ipv4_count.apply();
           ipv4_lpm.apply();
           forward.apply();
         }
