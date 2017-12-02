@@ -1,0 +1,19 @@
+# Debriefing
+## Eric Campbell and Dietrich Geisler
+
++ How many hours did you spend on this assignment?
+
+2
+
++ Would you rate it as easy, moderate, or difficult?
+
+Easy. The hardest part was figuring out P4 syntax and v1model.
+
++ If you worked with a partner, please briefly desribe both of your
+contributions to the solutions you submitted.
+
+We pair-programmed the whole assignment.
+
++ How deeply do you feel you understand the material it covers?
+
+80%

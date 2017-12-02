@@ -62,7 +62,9 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 	  ipv4_count.apply();
           ipv4_lpm.apply();
           forward.apply();
-        }
+        } else {
+	    _drop();
+	}
     }
 }
 
