@@ -36,6 +36,16 @@ header ipv4_t {
 struct metadata {
     ingress_metadata_t   ingress_metadata;
     intrinsic_metadata_t intrinsic_metadata;
+    bit<32> fwdKey;    // the key that was ejected
+    bit<32> fwdCount;  // the count that was ejected
+    // local variables::
+    bit<32> currIndex;    // the hash into the current hashtable
+    bit<32> currKey;       // the key for the current hashtable
+    bit<32> writeKey;      // the key to be written-back
+    bit<32> writeCount;    // the count to be written-back
+    bit<32> currCount;     // the count in the current hashtable
+    bit<32> currDiff;      // 0 if the currentKey the same as the carried key
+    bit     currValid;     // determines if we're currently valid or nae
 }
 
 struct headers {

@@ -4,9 +4,14 @@
 #include "header.p4"
 #include "parser.p4"
 
+
 control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
 
     counter(32w1024,CounterType.bytes) ctr;
+
+    register<bit<32>>(512) hashedKey;
+    register<bit<32>>(512) packetCount;
+    register<bit>(512) validBit;
     
     action _drop() {
         mark_to_drop();
@@ -23,6 +28,62 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     action count_bytes(bit<32> idx){
 	ctr.count(idx);
     }
+    
+    // this is doStage1() from the paper
+    action initial_flow() {
+	// calculate the hash
+	hash<bit<32>, bit<32>, bit<32>, bit<32>>(meta.currIndex, HashAlgorithm.crc32, 0, hdr.ipv4.srcAddr, 32);
+	
+	// Read key and value
+	hashedKey.read(meta.currKey, meta.currIndex);
+	packetCount.read(meta.currCount, meta.currIndex);
+	validBit.read(meta.currValid, meta.currIndex);
+	
+	// check validity of cell
+	meta.currKey = (meta.currValid == 0) ? hdr.ipv4.srcAddr : meta.currKey;
+	meta.currDiff = (meta.currValid == 0) ? 0 : meta.currKey - hdr.ipv4.srcAddr;
+
+	// update state
+	hashedKey.write(meta.currIndex, hdr.ipv4.srcAddr);
+	packetCount.write(meta.currIndex, (meta.currDiff == 0) ? meta.currCount + 1 : 1);
+	validBit.write(meta.currIndex, 1);
+
+	// update forwarding metadata
+	meta.fwdKey = (meta.currDiff == 0) ? 0 : meta.currKey;
+	meta.fwdCount = (meta.currDiff == 0) ? 0 : meta.currCount;
+    }
+
+    action heavy_hitter_init(in bit<32> tableOffset) {
+	// TODO:: setup
+	hash<bit<32>, bit<32>, bit<32>, bit<32>>(meta.currIndex, HashAlgorithm.crc32, tableOffset, meta.fwdKey, tableOffset + 32);
+	
+	// read key and value
+	hashedKey.read(meta.currKey, meta.currIndex);
+	packetCount.read(meta.currCount, meta.currIndex);
+	validBit.read(meta.currValid, meta.currIndex);
+
+	// Check validity of cell
+	meta.currKey = (meta.currValid == 0) ? meta.fwdKey : meta.currKey;
+	meta.currDiff = (meta.currValid == 0) ? 0 : meta.currKey - meta.fwdKey;
+
+	// Update State
+	meta.writeKey = (meta.currCount < meta.fwdCount) ? meta.fwdKey : meta.currKey;
+	hashedKey.write(meta.currIndex, (meta.currDiff == 0) ? meta.currKey : meta.writeKey);
+
+	meta.writeCount = (meta.currCount < meta.fwdCount) ? meta.fwdCount : meta.currCount;
+	packetCount.write(meta.currIndex, (meta.currDiff == 0) ? meta.currCount : meta.writeCount);
+
+	// TODO :: How do booleans work?
+	validBit.write(meta.currIndex, ((meta.currValid == 0 && meta.fwdKey == 0)) ? 1w0 : 1w1);
+	
+	
+	// TODO :: update forwarding metadata
+	meta.fwdKey = (meta.currDiff == 0) ? 0 : meta.currKey;
+	meta.fwdCount = (meta.currDiff == 0) ? 0 : meta.currCount;
+	
+    }
+    
+
     table ipv4_count {
 	actions = {
 	    count_bytes;
