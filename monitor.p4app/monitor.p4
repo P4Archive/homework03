@@ -30,9 +30,15 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     }
     
     // this is doStage1() from the paper
-    action initial_flow() {
+    action flow_in() {
 	// calculate the hash
-	hash<bit<32>, bit<32>, bit<32>, bit<32>>(meta.currIndex, HashAlgorithm.crc32, 0, hdr.ipv4.srcAddr, 32);
+	hash<bit<32>, bit<32>, tuple<bit<32>>, bit<32>>(
+	  meta.currIndex,
+	  HashAlgorithm.crc32,
+	  0,
+	  {hdr.ipv4.srcAddr},
+	  32
+	);
 	
 	// Read key and value
 	hashedKey.read(meta.currKey, meta.currIndex);
@@ -53,9 +59,15 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 	meta.fwdCount = (meta.currDiff == 0) ? 0 : meta.currCount;
     }
 
-    action heavy_hitter_init(in bit<32> tableOffset) {
+    action heavy_hitter(in bit<32> tableOffset) {
 	// TODO:: setup
-	hash<bit<32>, bit<32>, bit<32>, bit<32>>(meta.currIndex, HashAlgorithm.crc32, tableOffset, meta.fwdKey, tableOffset + 32);
+	hash<bit<32>, bit<32>, tuple<bit<32>>, bit<32>>(
+	  meta.currIndex,
+	  HashAlgorithm.crc32,
+	  tableOffset,
+	  {meta.fwdKey},
+          tableOffset + 32
+	);
 	
 	// read key and value
 	hashedKey.read(meta.currKey, meta.currIndex);
@@ -120,6 +132,8 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     }
     apply {
         if (hdr.ipv4.isValid()) {
+	  flow_in();
+	  heavy_hitter(256);
 	  ipv4_count.apply();
           ipv4_lpm.apply();
           forward.apply();

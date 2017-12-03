@@ -45,7 +45,7 @@ struct metadata {
     bit<32> writeCount;    // the count to be written-back
     bit<32> currCount;     // the count in the current hashtable
     bit<32> currDiff;      // 0 if the currentKey the same as the carried key
-    bit     currValid;     // determines if we're currently valid or nae
+    bit     currValid;     // determines if we're currently valid or nae register_read hashedKey
 }
 
 struct headers {
