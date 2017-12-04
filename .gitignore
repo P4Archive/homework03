@@ -5,5 +5,5 @@
 .#*
 *.hs
 *.o
-configgen
+Multiswitch
 *.hi
