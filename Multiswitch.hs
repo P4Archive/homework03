@@ -52,8 +52,31 @@ mkHosts n = do
   hosts <- hostArray n
   return ("    \"hosts\": {\n" ++ hosts ++ "\n  },")
 
+commands :: Integer -> String
+commands n =
+  foldr (\i rst ->
+           let ip = "10.0." ++ show (i-1) ++ ".10" in
+           let pt = show i in
+           let macsfx = (\j -> if j <= 10 then "0" ++ show j else show j) in
+           let fwdmac = "00:04:00:00:00:" ++ macsfx (i-1)in
+           let sendmac = "00:aa:bb:00:00:" ++ macsfx (i-1) in
+           "           \"table_add ipv4_lpm set_nhop " ++ ip ++ "/32 => " ++ ip ++ " " ++ pt ++ "\",\n" ++
+           "           \"table_add forward set_dmac " ++ ip ++ " => " ++ fwdmac ++ "\",\n" ++
+           "           \"table_add send_frame rewrite_mac " ++ pt ++ " => " ++ sendmac ++
+           (if (i == n) then "\"\n" else "\",\n")
+           ++ rst
+           ) "" [1..n]
+
+
 mkSwitches :: Integer -> String
-mkSwitches _ = ""
+mkSwitches n =
+  "    \"switches\": {\n" ++
+  "      \"s1\": {\n" ++
+  "         \"commands\" : [\n" ++ commands n ++ "\n" ++
+  "         ]\n" ++
+  "      }\n" ++
+  "    }\n"
+  
 mkAfter :: Integer -> String
 mkAfter _ = ""
 
