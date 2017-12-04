@@ -9,9 +9,9 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 
     counter(32w1024,CounterType.bytes) ctr;
 
-    register<bit<32>>(512) hashedKey;
-    register<bit<32>>(512) packetCount;
-    register<bit>(512) validBit;
+    register<bit<32>>(4) hashedKey;
+    register<bit<32>>(4) packetCount;
+    register<bit>(4) validBit;
     
     action _drop() {
         mark_to_drop();
@@ -37,11 +37,11 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 	  HashAlgorithm.crc32,
 	  0,
 	  {hdr.ipv4.srcAddr},
-	  32
+	  2
 	);
 	
 	// Read key and value
-	hashedKey.read(meta.currKey, meta.currIndex);
+	hashedKey.read(meta.currKey, meta.currIndex); //
 	packetCount.read(meta.currCount, meta.currIndex);
 	validBit.read(meta.currValid, meta.currIndex);
 	
@@ -64,10 +64,12 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 	hash<bit<32>, bit<32>, tuple<bit<32>>, bit<32>>(
 	  meta.currIndex,
 	  HashAlgorithm.crc32,
-	  tableOffset,
+	  0,
 	  {meta.fwdKey},
-          tableOffset + 32
+          2
 	);
+
+	meta.currIndex = meta.currIndex + tableOffset;
 	
 	// read key and value
 	hashedKey.read(meta.currKey, meta.currIndex);
@@ -75,15 +77,35 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 	validBit.read(meta.currValid, meta.currIndex);
 
 	// Check validity of cell
+	// if (meta.currValid == 0) {
+	//     meta.currKey = meta.fwdKey;
+	//     meta.currDiff = 0;
+	// } else {
+	//     meta.currKey = meta.currKey;
+	//     meta.currDiff = meta.currKey - meta.fwdKey;
+	// }
 	meta.currKey = (meta.currValid == 0) ? meta.fwdKey : meta.currKey;
 	meta.currDiff = (meta.currValid == 0) ? 0 : meta.currKey - meta.fwdKey;
 
 	// Update State
+	// if (meta.currCount < meta.fwdCount) {
+	//     if (meta.currDiff == 0) { // HIT
+	// 	packetCount.write(meta.currIndex, meta.currCount + meta.fwdCount);
+	//     }
+	//     else {  // MISS
+	// 	hashedKey.write(meta.currIndex, meta.fwdKey);
+	// 	packetCount.write(meta.currIndex, meta.fwdCount);
+	//     }
+	// }   else { // HIT
+	//     if (meta.currDiff == 0) {
+	// 	packetCount.write(meta.currIndex, meta.currCount + meta.fwdCount);
+	//     }
+	// }
 	meta.writeKey = (meta.currCount < meta.fwdCount) ? meta.fwdKey : meta.currKey;
 	hashedKey.write(meta.currIndex, (meta.currDiff == 0) ? meta.currKey : meta.writeKey);
 
 	meta.writeCount = (meta.currCount < meta.fwdCount) ? meta.fwdCount : meta.currCount;
-	packetCount.write(meta.currIndex, (meta.currDiff == 0) ? meta.currCount : meta.writeCount);
+	packetCount.write(meta.currIndex, (meta.currDiff == 0) ? meta.currCount + meta.fwdCount : meta.writeCount);
 
 	// TODO :: How do booleans work?
 	validBit.write(meta.currIndex, ((meta.currValid == 0 && meta.fwdKey == 0)) ? 1w0 : 1w1);
@@ -133,7 +155,7 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     apply {
         if (hdr.ipv4.isValid()) {
 	  flow_in();
-	  heavy_hitter(256);
+	  heavy_hitter(2);
 	  ipv4_count.apply();
           ipv4_lpm.apply();
           forward.apply();
