@@ -23,7 +23,7 @@ p4appCommands n =
   where
     hostDescr :: Integer -> Integer -> IO String
     hostDescr i n = getNext i (2 * n `div` 3) >>= (\nxt -> return (
-      "p4app exec m " ++ "h"++ show i ++ " ping -c 10 "++ getIP nxt ++" & \n"))
+      "sudo p4app exec m " ++ "h"++ show i ++ " ping -c 10 "++ getIP nxt ++" & \n"))
     getNext :: Integer -> Integer -> IO Integer
     getNext i n = (randomRIO (1,n) :: IO Integer) >>= return
 
@@ -54,7 +54,7 @@ main = do
   putStrLn "P4APP SCRIPT"
   writeFile "./tests/runtest"  p4cmds
   putStrLn "CLI SCRIPT" 
-  writeFile "./monitor.p4app/p4app.json" (switchCommands count)
+  writeFile "./monitor.p4app/s1.config" (switchCommands count)
   putStrLn "Run these commands: "
   putStrLn "p4app exec m s1 simple_switch_CLI "
   putStrLn "register_read packetCounts"
