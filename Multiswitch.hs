@@ -16,16 +16,16 @@ import System.Environment
 
 linkArray :: Integer -> String
 linkArray n = foldr (\i rst ->
-                       "      [\"h" ++ show i ++ "\", \"s1\"]"
+                       "        [\"h" ++ show i ++ "\", \"s1\"]"
                        ++ (if (i == n) then "" else  ",\n")
                        ++ rst
                     ) "" [1..n]
 
 mkLinks :: Integer -> String
 mkLinks n =
-  "  \"links\": [\n" ++
+  "      \"links\": [\n" ++
      linkArray n ++
-     "\n  ],\n"
+     "\n      ],\n"
 
 
 hostArray :: Integer -> IO String
@@ -38,8 +38,8 @@ hostArray n =
   where
     hostDescr :: Integer -> Integer -> IO String
     hostDescr i n = getNext i n >>= (\nxt -> return (
-      "      \"h"++ show i ++ "\" : { \n        " ++
-      "\"cmd\": \"ping -c 10 h" ++ nxt ++"\"\n      }" ++
+      "        \"h"++ show i ++ "\" : { \n          " ++
+      "\"cmd\": \"ping -c 10 h" ++ nxt ++"\"\n        }" ++
       (if (i == n) then "" else ",\n")))
 
     getNext :: Integer -> Integer -> IO String
@@ -50,7 +50,7 @@ hostArray n =
 mkHosts :: Integer -> IO String
 mkHosts n = do
   hosts <- hostArray n
-  return ("    \"hosts\": {\n" ++ hosts ++ "\n  },")
+  return ("      \"hosts\": {\n" ++ hosts ++ "\n      },\n")
 
 commands :: Integer -> String
 commands n =
@@ -60,9 +60,9 @@ commands n =
            let macsfx = (\j -> if j <= 10 then "0" ++ show j else show j) in
            let fwdmac = "00:04:00:00:00:" ++ macsfx (i-1)in
            let sendmac = "00:aa:bb:00:00:" ++ macsfx (i-1) in
-           "           \"table_add ipv4_lpm set_nhop " ++ ip ++ "/32 => " ++ ip ++ " " ++ pt ++ "\",\n" ++
-           "           \"table_add forward set_dmac " ++ ip ++ " => " ++ fwdmac ++ "\",\n" ++
-           "           \"table_add send_frame rewrite_mac " ++ pt ++ " => " ++ sendmac ++
+           "             \"table_add ipv4_lpm set_nhop " ++ ip ++ "/32 => " ++ ip ++ " " ++ pt ++ "\",\n" ++
+           "             \"table_add forward set_dmac " ++ ip ++ " => " ++ fwdmac ++ "\",\n" ++
+           "             \"table_add send_frame rewrite_mac " ++ pt ++ " => " ++ sendmac ++
            (if (i == n) then "\"\n" else "\",\n")
            ++ rst
            ) "" [1..n]
@@ -70,27 +70,34 @@ commands n =
 
 mkSwitches :: Integer -> String
 mkSwitches n =
-  "    \"switches\": {\n" ++
-  "      \"s1\": {\n" ++
-  "         \"commands\" : [\n" ++ commands n ++ "\n" ++
-  "         ]\n" ++
-  "      }\n" ++
-  "    }\n"
+  "      \"switches\": {\n" ++
+  "        \"s1\": {\n" ++
+  "           \"commands\" : [\n" ++ commands n ++ "\n" ++
+  "           ]\n" ++
+  "        }\n" ++
+  "      },\n"
   
-mkAfter :: Integer -> String
-mkAfter _ = ""
+mkAfter :: String
+mkAfter =
+  "      \"after\": {\n" ++
+  "        \"cmd\": [\n" ++
+  "          \"echo \"register_read hashedKey\" | simple_switch_CLI\",\n" ++
+  "          \"echo \"register_read packetCount\" | simple_switch_CLI\",\n" ++
+  "          \"echo \"register_read validBit\" | simple_switch_CLI\",\n" ++
+  "        ]\n" ++
+  "      }\n"
 
 mkjson :: Integer -> IO String
 mkjson n = do
   hosts <- mkHosts n
   return (
-    "{ \"program\": \"monitor.p4, \n  \"language\":\"p4-16\"," ++
-    "  \"targets\": {" ++
+    "{ \"program\": \"monitor.p4, \n  \"language\":\"p4-16\",\n" ++
+    "  \"targets\": {\n" ++
     "    \"multiswitch\": { \n" ++
     mkLinks n ++
     hosts ++
     mkSwitches n ++
-    mkAfter n ++ 
+    mkAfter ++ 
     "\n}") --   \"parameters\": { \n"++
     -- "    \"port\": 8000, \n"++
     -- "    \"echo_msg\": \"foobar\"\n  }\n}")
