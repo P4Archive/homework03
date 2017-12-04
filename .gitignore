@@ -3,3 +3,7 @@
 *.pdf
 #*#
 .#*
+*.hs
+*.o
+configgen
+*.hi

@@ -1,4 +1,4 @@
-module Multiswitch where
+module Main where
 
 import Prelude
 
@@ -11,6 +11,7 @@ import qualified Data.Map as Map
 import Data.Map (Map)
 
 import System.Random
+import System.Environment
 
 
 linkArray :: Integer -> String
@@ -74,3 +75,7 @@ mkjson n = do
 
 mkMultiswitchConfig :: Integer -> IO ()
 mkMultiswitchConfig n = mkjson n >>= putStrLn
+
+main = do
+  args <- getArgs
+  mkMultiswitchConfig $ read $ head args
