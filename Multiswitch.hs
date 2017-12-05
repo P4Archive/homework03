@@ -43,7 +43,7 @@ suffix :: Integer -> Integer -> String
 suffix n numHH =
   "sleep 1s\n" ++
   "p4app exec m s1 \"echo register_read hashedKey | simple_switch_CLI\" >> " ++
-  "~/courses/networkpl/homework03/tests/h"++show n
+  "./tests/h"++show n
   ++ "hh" ++ show numHH ++ "arr30.dmp"
     
   
