@@ -59,9 +59,40 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 	meta.fwdCount = (meta.currDiff == 0) ? 0 : meta.currCount;
     }
 
-    action heavy_hitter(in bit<32> tableOffset) {
+    action heavy_hitter(in bit<32> tableOffset, in bit<3> hashSelection) {
 	// TODO:: setup
 	hash<bit<32>, bit<32>, tuple<bit<32>>, bit<32>>(
+	  meta.currIndex,
+	  (hashSelection == 0) ? HashAlgorithm.crc32 :
+    (hashSelection == 1) ? HashAlgorithm.crc16 :
+    (hashSelection == 2) ? HashAlgorithm.csum16 :
+    (hashSelection == 3) ? HashAlgorithm.xor16 :
+    HashAlgorithm.identity,
+	  0,
+	  {meta.fwdKey},
+          2
+	);
+  :
+  hashSelection == 2 ?
+  hash<bit<32>, bit<32>, tuple<bit<32>>, bit<32>>(
+	  meta.currIndex,
+	  HashAlgorithm.crc32,
+	  0,
+	  {meta.fwdKey},
+          2
+	);
+  :
+  hashSelection == 3 ?
+  hash<bit<32>, bit<32>, tuple<bit<32>>, bit<32>>(
+	  meta.currIndex,
+	  HashAlgorithm.crc32,
+	  0,
+	  {meta.fwdKey},
+          2
+	);
+  :
+  //else
+  hash<bit<32>, bit<32>, tuple<bit<32>>, bit<32>>(
 	  meta.currIndex,
 	  HashAlgorithm.crc32,
 	  0,
@@ -106,12 +137,10 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 
 	meta.writeCount = (meta.currCount < meta.fwdCount) ? meta.fwdCount : meta.currCount;
 	packetCount.write(meta.currIndex, (meta.currDiff == 0) ? meta.currCount + meta.fwdCount : meta.writeCount);
-
-	// TODO :: How do booleans work?
 	validBit.write(meta.currIndex, ((meta.currValid == 0 && meta.fwdKey == 0)) ? 1w0 : 1w1);
 	
 	
-	// TODO :: update forwarding metadata
+	// Update Forwarding Metadata
 	meta.fwdKey = (meta.currDiff == 0) ? 0 : meta.currKey;
 	meta.fwdCount = (meta.currDiff == 0) ? 0 : meta.currCount;
 	
@@ -155,7 +184,7 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     apply {
         if (hdr.ipv4.isValid()) {
 	  flow_in();
-	  heavy_hitter(2);
+	  heavy_hitter(2, 0);
 	  ipv4_count.apply();
           ipv4_lpm.apply();
           forward.apply();
