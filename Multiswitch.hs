@@ -3,6 +3,7 @@ module Main where
 import Prelude
 
 import Data.List
+import Data.Bits
 
 import qualified Data.Set as Set
 import Data.Set (Set)
@@ -13,19 +14,28 @@ import Data.Map (Map)
 import System.Random
 import System.Environment
 
-p4appCommands :: Integer -> IO String
-p4appCommands n =
-  foldr (\i rst -> do
-            h <- hostDescr i n
-            r <- rst
-            return (h ++ r)
-        ) (return "") [1..n]
+p4appCommands :: Integer -> Integer -> String
+p4appCommands n numHH =
+  foldr (\i rst ->  hostDescr i n numHH ++ rst) "" [1..n]
   where
-    hostDescr :: Integer -> Integer -> IO String
-    hostDescr i n = getNext i (2 * n `div` 3) >>= (\nxt -> return (
-      "sudo p4app exec m " ++ "h"++ show i ++ " ping -c 10 "++ getIP nxt ++" & \n"))
-    getNext :: Integer -> Integer -> IO Integer
-    getNext i n = (randomRIO (1,n) :: IO Integer) >>= return
+    hostDescr :: Integer -> Integer -> Integer -> String
+    hostDescr i n numHH =
+      let nxt = (i `mod` numHH) + 1 in
+      "sudo p4app exec m " ++ "h"++ show i ++
+      " ping -c 10 "++ getIP nxt ++" & \n"
+
+p4appCommRandom :: Integer -> Integer -> IO String
+p4appCommRandom n numHH = 
+  foldr (\i rst -> do
+         h <- hostDescr i n numHH
+         r <- rst
+         return (h ++ r)) (return "") [1..n]
+  where
+    hostDescr :: Integer -> Integer -> Integer -> IO String
+    hostDescr i n numHH = do
+      nxt <-  randomRIO(1,numHH)
+      return ("sudo p4app exec m " ++ "h"++ show i ++ " ping -c 10 "++ getIP nxt ++" & \n")
+  
 
 
 switchCommands :: Integer -> String
@@ -47,14 +57,39 @@ switchCommands n =
 getIP :: Integer -> String
 getIP i = "10.0." ++ show (i-1) ++ ".10"
 
+
+p4appJSON :: Integer -> String
+p4appJSON n =
+  "{ \"program\": \"monitor.p4\",\n" ++
+  "  \"language\": \"p4-16\",\n" ++
+  "  \"targets\": {\n" ++
+  "    \"mininet\" : {\n" ++
+  "       \"num-hosts\": " ++ show n ++ ",\n" ++
+  "       \"switch-config\": \"s1.config\"\n" ++
+  "     }\n"++
+  "   }\n "++
+  "}"
+
+
+getIPS :: [Integer] -> [String]
+getIPS ips =
+  map (\ip ->
+          intercalate "."
+          $ foldr (\sft rst ->
+                      show (shiftR (shiftL (255::Integer) sft .&. ip) sft) :
+                      rst) [] [24,16,8,0]
+      ) ips 
+
 main = do
   args <- getArgs
   let count = (read $ head args) :: Integer
-  p4cmds <- p4appCommands count
+  let numHH = (read $ head $ tail args) :: Integer
+  p4app <- (return $ p4appCommands count numHH) --p4appCommRandom count numHH 
   putStrLn "P4APP SCRIPT"
-  writeFile "./tests/runtest"  p4cmds
+  writeFile "./tests/runtest" $ p4app
   putStrLn "CLI SCRIPT" 
   writeFile "./monitor.p4app/s1.config" (switchCommands count)
+  writeFile "./monitor.p4app/p4app.json" (p4appJSON count)
   putStrLn "Run these commands: "
   putStrLn "p4app exec m s1 simple_switch_CLI "
   putStrLn "register_read packetCounts"
