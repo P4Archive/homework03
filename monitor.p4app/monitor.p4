@@ -9,9 +9,9 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 
     counter(32w1024,CounterType.bytes) ctr;
 
-    register<bit<32>>(60) hashedKey;
-    register<bit<32>>(60) packetCount;
-    register<bit>(60) validBit;
+    register<bit<32>>(30) hashedKey;
+    register<bit<32>>(30) packetCount;
+    register<bit>(30) validBit;
     
     action _drop() {
         mark_to_drop();
@@ -37,7 +37,7 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 	  HashAlgorithm.crc32,
 	  0,
 	  {hdr.ipv4.srcAddr},
-	  20
+	  10
 	);
 	
 	// Read key and value
@@ -66,7 +66,7 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 	  HashAlgorithm.crc32,
 	  0,
 	  {meta.fwdKey},
-          20
+          10
 	);
 
 	meta.currIndex = meta.currIndex + tableOffset;
@@ -155,8 +155,8 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     apply {
         if (hdr.ipv4.isValid()) {
 	    flow_in();
+	    heavy_hitter(10);
 	    heavy_hitter(20);
-	    heavy_hitter(40);
 	    ipv4_count.apply();
             ipv4_lpm.apply();
             forward.apply();
