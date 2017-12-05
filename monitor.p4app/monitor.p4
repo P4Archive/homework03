@@ -66,7 +66,7 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 	hashSelection,
 	0,
 	{meta.fwdKey},
-        30
+        60
 	);
 	
 	meta.currIndex = meta.currIndex + tableOffset;
@@ -152,12 +152,12 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     }
     apply {
         if (hdr.ipv4.isValid()) {
-	    flow_in();
-	    heavy_hitter(30, HashAlgorithm.crc32);
-	    heavy_hitter(60, HashAlgorithm.csum16);
 	    // flow_in();
 	    // heavy_hitter(30, HashAlgorithm.crc32);
-	    // heavy_hitter(30, HashAlgorithm.csum16);
+	    // heavy_hitter(60, HashAlgorithm.csum16);
+	    flow_in();
+	    heavy_hitter(30, HashAlgorithm.crc32);
+	    heavy_hitter(30, HashAlgorithm.csum16);
 	    ipv4_count.apply();
             ipv4_lpm.apply();
             forward.apply();
