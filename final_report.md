@@ -6,7 +6,7 @@ publish: true
 urlcolor: blue
 ---
 
-We have re-implemented and measured HashPipe [(link)][1]. This algorithm approximately
+We have re-implemented and measured [HashPipe][1]. This algorithm approximately
 calculates the top heavy-hitters on a switch. To do this, it defines a pipeline of
 `n` hash tables that record the byte-counts for each incoming flow. Of course, these
 tables are finite, so it cannot actually record every flow, and so we must specify
@@ -61,23 +61,9 @@ call to `heavy-hitter` uses a unique hash function to properly distribute key va
 
 ### Evaluation
 
-As a simple test of correctness, we instantiated the hash tables with size two, and
-create a simple topology of five hosts `h1,h2,h3,h4` connected via one switch.  We
-then found that pings between h1/h2, h3/h4, and h2/h3 in sequence succesfully result
-in the correct ping counts with h1/h2 in the second table and h3/h4 in the first
-table.
-
-
-
-We bombard `h5` with traffic from `h1,...,h4` ensuring that `h1` sends twice as much
-traffic as `h2,...,h4`. We then check the final table to make sure that `h1` is in
-one of the tables and has the highest count.
-
-For a more robust test of correctness, we generalize to 300 client hosts and tables
-of size 50 and have 1/3 of the clients be ground-truth heavy-hitters. We hope to
-see that the HashPipe results are close to the ground-truth.
-
-To measure efficiency we will simply measure the latency of the switch over heavy
-`iperf` loads for each of topology defined above.
+![Host Scaling](./hhc.png)
+![Table Size 10](./ts10.PNG)
+![Table Size 20](./ts20.PNG)
+![Table Size 30](./ts30.PNG)
 
 [1]: https://conferences.sigcomm.org/sosr/2017/papers/sosr17-heavy-hitter.pdf
