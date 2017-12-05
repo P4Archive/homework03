@@ -7,3 +7,5 @@
 *.o
 Multiswitch
 *.hi
+*#*#*
+.~*#

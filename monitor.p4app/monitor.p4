@@ -9,9 +9,9 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 
     counter(32w1024,CounterType.bytes) ctr;
 
-    register<bit<32>>(30) hashedKey;
-    register<bit<32>>(30) packetCount;
-    register<bit>(30) validBit;
+    register<bit<32>>(60) hashedKey;
+    register<bit<32>>(60) packetCount;
+    register<bit>(60) validBit;
     
     action _drop() {
         mark_to_drop();
@@ -37,7 +37,7 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 	  HashAlgorithm.crc32,
 	  0,
 	  {hdr.ipv4.srcAddr},
-	  10
+	  20
 	);
 	
 	// Read key and value
@@ -59,16 +59,16 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 	meta.fwdCount = (meta.currDiff == 0) ? 0 : meta.currCount;
     }
 
-    action heavy_hitter(in bit<32> tableOffset) {
+    action heavy_hitter(in bit<32> tableOffset, in HashAlgorithm hashSelection) {
 	// TODO:: setup
 	hash<bit<32>, bit<32>, tuple<bit<32>>, bit<32>>(
-	  meta.currIndex,
-	  HashAlgorithm.crc32,
-	  0,
-	  {meta.fwdKey},
-          10
+	meta.currIndex,
+	hashSelection,
+	0,
+	{meta.fwdKey},
+        40
 	);
-
+	
 	meta.currIndex = meta.currIndex + tableOffset;
 	
 	// read key and value
@@ -106,12 +106,10 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 
 	meta.writeCount = (meta.currCount < meta.fwdCount) ? meta.fwdCount : meta.currCount;
 	packetCount.write(meta.currIndex, (meta.currDiff == 0) ? meta.currCount + meta.fwdCount : meta.writeCount);
-
-	// TODO :: How do booleans work?
 	validBit.write(meta.currIndex, ((meta.currValid == 0 && meta.fwdKey == 0)) ? 1w0 : 1w1);
 	
 	
-	// TODO :: update forwarding metadata
+	// Update Forwarding Metadata
 	meta.fwdKey = (meta.currDiff == 0) ? 0 : meta.currKey;
 	meta.fwdCount = (meta.currDiff == 0) ? 0 : meta.currCount;
 	
@@ -154,9 +152,12 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     }
     apply {
         if (hdr.ipv4.isValid()) {
+	    // flow_in();
+	    // heavy_hitter(10);
+	    // heavy_hitter(20);
 	    flow_in();
-	    heavy_hitter(10);
-	    heavy_hitter(20);
+	    heavy_hitter(20, HashAlgorithm.crc32);
+	    heavy_hitter(20, HashAlgorithm.csum16);
 	    ipv4_count.apply();
             ipv4_lpm.apply();
             forward.apply();

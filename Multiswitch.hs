@@ -13,10 +13,13 @@ import Data.Map (Map)
 
 import System.Random
 import System.Environment
+import System.Random.Shuffle
 
-p4appCommands :: Integer -> Integer -> String
-p4appCommands n numHH =
-  foldr (\i rst ->  hostDescr i n numHH ++ rst) "" [1..n]
+p4appCommands :: Integer -> Integer -> IO String
+p4appCommands n numHH = do
+  commslst <- shuffleM $ map (\ i ->  hostDescr i n numHH ) [1..n]
+  let commsstr = (foldr (\i rst -> i++rst) "" commslst) ++ (suffix n numHH)
+  return commsstr
   where
     hostDescr :: Integer -> Integer -> Integer -> String
     hostDescr i n numHH =
@@ -29,12 +32,20 @@ p4appCommRandom n numHH =
   foldr (\i rst -> do
          h <- hostDescr i n numHH
          r <- rst
-         return (h ++ r)) (return "") [1..n]
+         return (h ++ r)) (return $ suffix n numHH) [1..n]
   where
     hostDescr :: Integer -> Integer -> Integer -> IO String
     hostDescr i n numHH = do
       nxt <-  randomRIO(1,numHH)
       return ("sudo p4app exec m " ++ "h"++ show i ++ " ping -c 10 "++ getIP nxt ++" & \n")
+
+suffix :: Integer -> Integer -> String
+suffix n numHH =
+  "sleep 3s\n" ++
+  "p4app exec m s1 \"echo register_read hashedKey | simple_switch_CLI\" >> " ++
+  "~/courses/networkpl/homework03/tests/h"++show n
+  ++ "hh" ++ show numHH ++ "arr20.dmp"
+    
   
 
 
@@ -80,11 +91,16 @@ getIPS ips =
                       rst) [] [24,16,8,0]
       ) ips 
 
+testHHS :: [Integer] -> Int -> Int
+testHHS ips numHH =
+  let groundTruth = map (\i -> "10.0." ++ show i ++ ".10") [0..numHH-1] in
+  numHH - (length ( groundTruth \\ getIPS ips))
+
 main = do
   args <- getArgs
   let count = (read $ head args) :: Integer
   let numHH = (read $ head $ tail args) :: Integer
-  p4app <- (return $ p4appCommands count numHH) --p4appCommRandom count numHH 
+  p4app <- p4appCommands count numHH --p4appCommRandom count numHH 
   putStrLn "P4APP SCRIPT"
   writeFile "./tests/runtest" $ p4app
   putStrLn "CLI SCRIPT" 
