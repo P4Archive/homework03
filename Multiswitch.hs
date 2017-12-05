@@ -44,7 +44,7 @@ suffix n numHH =
   "sleep 1s\n" ++
   "p4app exec m s1 \"echo register_read hashedKey | simple_switch_CLI\" >> " ++
   "~/courses/networkpl/homework03/tests/h"++show n
-  ++ "hh" ++ show numHH ++ "arr20_stdhashpipe.dmp"
+  ++ "hh" ++ show numHH ++ "arr10_stdhashpipe.dmp"
     
   
 
