@@ -10,7 +10,7 @@ HOSTS=50 HHS=10 make config
 Then run the p4app using
 
 ```
-sudo p4app run cuckoo.p4app mininet
+sudo p4app run monitor.p4app mininet
 ```
 
 Once mininet has started, open up a separate terminal as `root`. Copy
