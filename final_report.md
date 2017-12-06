@@ -1,7 +1,7 @@
 ---
-title: Project Update
+title: Final Report
 author: Eric Campbell and Dietrich Geisler
-date: November 21, 2017
+date: December 5, 2017
 publish: true
 urlcolor: blue
 ---
